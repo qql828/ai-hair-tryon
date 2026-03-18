@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>彩虹颜色</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    transition: background 0.4s ease;
+    overflow: hidden;
+  }
+  #toolbar {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 100;
+  }
+  select {
+    appearance: none;
+    padding: 8px 36px 8px 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: rgba(255,255,255,0.15);
+    color: #fff;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='white' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    outline: none;
+    transition: background-color 0.2s;
+  }
+  select:hover { background-color: rgba(255,255,255,0.25); }
+  select option { background: #222; color: #fff; font-weight: 600; }
+
+  @keyframes rainbow-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  body.rainbow {
+    background: linear-gradient(135deg, #FF0000, #FF7F00, #FFFF00, #00AA00, #0000FF, #4B0082, #8B00FF, #FF0000) !important;
+    background-size: 400% 400% !important;
+    animation: rainbow-shift 4s ease infinite;
+  }
+
+  #dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.6);
+    background: #000;
+    transition: background 0.4s ease;
+    flex-shrink: 0;
+  }
+
+  #fullscreen-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    transition: background 0.2s;
+  }
+  #fullscreen-btn:hover { background: rgba(255,255,255,0.28); }
+
+  #label {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    pointer-events: none;
+    transition: color 0.4s;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <div id="dot"></div>
+  <select id="picker">
+    <option value="#000000">⬛ 黑色（默认）</option>
+    <option value="#FF0000">🔴 红色 Red</option>
+    <option value="#FF7F00">🟠 橙色 Orange</option>
+    <option value="#FFFF00">🟡 黄色 Yellow</option>
+    <option value="#00AA00">🟢 绿色 Green</option>
+    <option value="#0000FF">🔵 蓝色 Blue</option>
+    <option value="#4B0082">🟣 靛色 Indigo</option>
+    <option value="#8B00FF">🟣 紫色 Violet</option>
+    <option value="rainbow">🌈 彩虹色 Rainbow</option>
+  </select>
+  <button id="fullscreen-btn" title="全屏">⛶</button>
+</div>
+
+<div id="label">黑色</div>
+
+<script>
+  const picker = document.getElementById('picker');
+  const dot    = document.getElementById('dot');
+  const label  = document.getElementById('label');
+  const fsBtn  = document.getElementById('fullscreen-btn');
+
+  const names = {
+    '#000000': '黑色',
+    '#FF0000': '红色 Red',
+    '#FF7F00': '橙色 Orange',
+    '#FFFF00': '黄色 Yellow',
+    '#00AA00': '绿色 Green',
+    '#0000FF': '蓝色 Blue',
+    '#4B0082': '靛色 Indigo',
+    '#8B00FF': '紫色 Violet',
+    'rainbow': '🌈 彩虹色 Rainbow',
+  };
+
+  function applyColor(val) {
+    if (val === 'rainbow') {
+      document.body.style.background = '';
+      document.body.classList.add('rainbow');
+      dot.style.background = 'linear-gradient(135deg, #FF0000, #FF7F00, #FFFF00, #00AA00, #0000FF, #8B00FF)';
+      label.textContent = '🌈 彩虹色 Rainbow';
+      label.style.color = 'rgba(255,255,255,0.7)';
+    } else {
+      document.body.classList.remove('rainbow');
+      document.body.style.background = val;
+      dot.style.background = val === '#000000' ? '#333' : val;
+      label.textContent = names[val] || val;
+      label.style.color = val === '#FFFF00'
+        ? 'rgba(0,0,0,0.3)'
+        : 'rgba(255,255,255,0.35)';
+    }
+  }
+
+  picker.addEventListener('change', () => applyColor(picker.value));
+
+  fsBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    fsBtn.textContent = document.fullscreenElement ? '✕' : '⛶';
+    fsBtn.title = document.fullscreenElement ? '退出全屏 (Esc)' : '全屏';
+  });
+</script>
+</body>
+</html>

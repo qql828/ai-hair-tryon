@@ -50,13 +50,88 @@ export default function Home() {
         return;
       }
 
-      setResultUrl(data.image);
+      // Composite: paste original pixels back where mask is black (non-hair areas)
+      // This preserves the face and body pixel-perfectly from the original photo
+      const composited = await compositeImages(imageDataUrl, data.image, maskFile);
+      setResultUrl(composited);
       setStep("result");
     } catch {
       setError("网络错误，请检查连接后重试");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Client-side compositing: wherever mask is black, use original image pixels
+  const compositeImages = (
+    originalDataUrl: string,
+    generatedDataUrl: string,
+    maskFileObj: File
+  ): Promise<string> => {
+    return new Promise((resolve) => {
+      const maskUrl = URL.createObjectURL(maskFileObj);
+      const originalImg = new Image();
+      const generatedImg = new Image();
+      const maskImg = new Image();
+
+      let loaded = 0;
+      const onLoad = () => {
+        loaded++;
+        if (loaded < 3) return;
+
+        const canvas = document.createElement("canvas");
+        const w = generatedImg.naturalWidth || 1024;
+        const h = generatedImg.naturalHeight || 1024;
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d")!;
+
+        // Draw generated image as base
+        ctx.drawImage(generatedImg, 0, 0, w, h);
+        const generatedData = ctx.getImageData(0, 0, w, h);
+
+        // Draw original image
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(originalImg, 0, 0, w, h);
+        const originalData = ctx.getImageData(0, 0, w, h);
+
+        // Draw mask
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(maskImg, 0, 0, w, h);
+        const maskData = ctx.getImageData(0, 0, w, h);
+
+        // Composite: where mask is dark (non-hair), use original pixels
+        const output = ctx.createImageData(w, h);
+        for (let i = 0; i < maskData.data.length; i += 4) {
+          const maskBrightness = maskData.data[i]; // red channel of mask
+          if (maskBrightness < 128) {
+            // Non-hair area: use original
+            output.data[i] = originalData.data[i];
+            output.data[i + 1] = originalData.data[i + 1];
+            output.data[i + 2] = originalData.data[i + 2];
+            output.data[i + 3] = originalData.data[i + 3];
+          } else {
+            // Hair area: use generated
+            output.data[i] = generatedData.data[i];
+            output.data[i + 1] = generatedData.data[i + 1];
+            output.data[i + 2] = generatedData.data[i + 2];
+            output.data[i + 3] = generatedData.data[i + 3];
+          }
+        }
+
+        ctx.putImageData(output, 0, 0);
+        URL.revokeObjectURL(maskUrl);
+        resolve(canvas.toDataURL("image/png"));
+      };
+
+      originalImg.onload = onLoad;
+      generatedImg.onload = onLoad;
+      maskImg.onload = onLoad;
+
+      originalImg.src = originalDataUrl;
+      generatedImg.src = generatedDataUrl;
+      maskImg.src = maskUrl;
+    });
   };
 
   const handleReset = () => {

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     if (negativePrompt) {
       stabilityForm.append("negative_prompt", negativePrompt);
     }
-    stabilityForm.append("output_format", "webp");
+    stabilityForm.append("output_format", "png");
 
     const response = await fetch(
       "https://api.stability.ai/v2beta/stable-image/edit/inpaint",
@@ -54,9 +54,21 @@ export async function POST(req: NextRequest) {
     }
 
     const imageBuffer = await response.arrayBuffer();
-    const base64 = Buffer.from(imageBuffer).toString("base64");
+    const bytes = new Uint8Array(imageBuffer);
 
-    return NextResponse.json({ image: `data:image/webp;base64,${base64}` });
+    // Convert to base64 in chunks to avoid stack overflow
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    const base64 = btoa(binary);
+
+    // Return generated image + flag to trigger client-side compositing
+    return NextResponse.json({
+      image: `data:image/png;base64,${base64}`,
+      needsComposite: true,
+    });
   } catch (err) {
     console.error("Generate error:", err);
     return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
