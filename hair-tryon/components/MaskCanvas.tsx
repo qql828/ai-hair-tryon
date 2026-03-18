@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 
 interface MaskCanvasProps {
   imageDataUrl: string;
-  onMaskReady: (maskFile: File) => void;
+  onMaskReady: (maskFile: File, maskDataUrl: string) => void;
 }
 
 export default function MaskCanvas({ imageDataUrl, onMaskReady }: MaskCanvasProps) {
@@ -133,7 +133,8 @@ export default function MaskCanvas({ imageDataUrl, onMaskReady }: MaskCanvasProp
     maskCanvas.toBlob((blob) => {
       if (!blob) return;
       const file = new File([blob], "mask.png", { type: "image/png" });
-      onMaskReady(file);
+      const dataUrl = maskCanvas.toDataURL("image/png");
+      onMaskReady(file, dataUrl);
     }, "image/png");
   }, [onMaskReady]);
 

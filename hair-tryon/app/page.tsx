@@ -14,6 +14,7 @@ export default function Home() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string>("");
   const [maskFile, setMaskFile] = useState<File | null>(null);
+  const [maskDataUrl, setMaskDataUrl] = useState<string>("");
   const [selectedStyle, setSelectedStyle] = useState<Hairstyle | null>(null);
   const [resultUrl, setResultUrl] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -25,8 +26,9 @@ export default function Home() {
     setStep("mask");
   }, []);
 
-  const handleMaskReady = useCallback((file: File) => {
+  const handleMaskReady = useCallback((file: File, dataUrl: string) => {
     setMaskFile(file);
+    setMaskDataUrl(dataUrl);
     setStep("select");
   }, []);
 
@@ -52,7 +54,7 @@ export default function Home() {
 
       // Composite: paste original pixels back where mask is black (non-hair areas)
       // This preserves the face and body pixel-perfectly from the original photo
-      const composited = await compositeImages(imageDataUrl, data.image, maskFile);
+      const composited = await compositeImages(imageDataUrl, data.image, maskDataUrl);
       setResultUrl(composited);
       setStep("result");
     } catch {
@@ -66,10 +68,9 @@ export default function Home() {
   const compositeImages = (
     originalDataUrl: string,
     generatedDataUrl: string,
-    maskFileObj: File
+    maskUrl: string
   ): Promise<string> => {
     return new Promise((resolve) => {
-      const maskUrl = URL.createObjectURL(maskFileObj);
       const originalImg = new Image();
       const generatedImg = new Image();
       const maskImg = new Image();
@@ -90,12 +91,12 @@ export default function Home() {
         ctx.drawImage(generatedImg, 0, 0, w, h);
         const generatedData = ctx.getImageData(0, 0, w, h);
 
-        // Draw original image
+        // Draw original image scaled to same size
         ctx.clearRect(0, 0, w, h);
         ctx.drawImage(originalImg, 0, 0, w, h);
         const originalData = ctx.getImageData(0, 0, w, h);
 
-        // Draw mask
+        // Draw mask scaled to same size
         ctx.clearRect(0, 0, w, h);
         ctx.drawImage(maskImg, 0, 0, w, h);
         const maskData = ctx.getImageData(0, 0, w, h);
@@ -103,24 +104,16 @@ export default function Home() {
         // Composite: where mask is dark (non-hair), use original pixels
         const output = ctx.createImageData(w, h);
         for (let i = 0; i < maskData.data.length; i += 4) {
-          const maskBrightness = maskData.data[i]; // red channel of mask
-          if (maskBrightness < 128) {
-            // Non-hair area: use original
-            output.data[i] = originalData.data[i];
-            output.data[i + 1] = originalData.data[i + 1];
-            output.data[i + 2] = originalData.data[i + 2];
-            output.data[i + 3] = originalData.data[i + 3];
-          } else {
-            // Hair area: use generated
-            output.data[i] = generatedData.data[i];
-            output.data[i + 1] = generatedData.data[i + 1];
-            output.data[i + 2] = generatedData.data[i + 2];
-            output.data[i + 3] = generatedData.data[i + 3];
-          }
+          const maskBrightness = maskData.data[i]; // red channel
+          // Soft blend at edges using mask brightness as alpha
+          const t = maskBrightness / 255;
+          output.data[i]     = Math.round(originalData.data[i]     * (1 - t) + generatedData.data[i]     * t);
+          output.data[i + 1] = Math.round(originalData.data[i + 1] * (1 - t) + generatedData.data[i + 1] * t);
+          output.data[i + 2] = Math.round(originalData.data[i + 2] * (1 - t) + generatedData.data[i + 2] * t);
+          output.data[i + 3] = 255;
         }
 
         ctx.putImageData(output, 0, 0);
-        URL.revokeObjectURL(maskUrl);
         resolve(canvas.toDataURL("image/png"));
       };
 
@@ -139,6 +132,7 @@ export default function Home() {
     setImageFile(null);
     setImageDataUrl("");
     setMaskFile(null);
+    setMaskDataUrl("");
     setSelectedStyle(null);
     setResultUrl("");
     setError("");
