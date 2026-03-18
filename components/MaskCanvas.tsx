@@ -8,17 +8,19 @@ interface MaskCanvasProps {
 }
 
 export default function MaskCanvas({ imageDataUrl, onMaskReady }: MaskCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Two separate canvases: bg (background image) + overlay (paint strokes only)
+  const bgRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [brushSize, setBrushSize] = useState(40);
   const [mode, setMode] = useState<"draw" | "erase">("draw");
   const lastPos = useRef<{ x: number; y: number } | null>(null);
 
-  // Draw background image
+  // Draw background image onto bg canvas only
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
+    const bg = bgRef.current;
+    if (!bg) return;
+    const ctx = bg.getContext("2d")!;
     const img = new Image();
     img.onload = () => {
       ctx.clearRect(0, 0, 512, 512);
@@ -46,13 +48,13 @@ export default function MaskCanvas({ imageDataUrl, onMaskReady }: MaskCanvasProp
   const draw = useCallback(
     (e: React.MouseEvent | React.TouchEvent) => {
       if (!isDrawing) return;
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d")!;
-      const pos = getPos(e, canvas);
+      const overlay = overlayRef.current;
+      if (!overlay) return;
+      const ctx = overlay.getContext("2d")!;
+      const pos = getPos(e, overlay);
 
       ctx.globalCompositeOperation = mode === "draw" ? "source-over" : "destination-out";
-      ctx.strokeStyle = "rgba(139, 92, 246, 0.7)";
+      ctx.strokeStyle = "rgba(139, 92, 246, 0.85)";
       ctx.lineWidth = brushSize;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -71,51 +73,28 @@ export default function MaskCanvas({ imageDataUrl, onMaskReady }: MaskCanvasProp
   );
 
   const exportMask = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const overlay = overlayRef.current;
+    if (!overlay) return;
 
-    // Create a pure B&W mask canvas
+    // Read alpha channel from overlay canvas — no background pixels here
+    const overlayCtx = overlay.getContext("2d")!;
+    const overlayData = overlayCtx.getImageData(0, 0, 512, 512);
+
+    // Build 1024x1024 B&W mask: white where alpha > 0, black elsewhere
     const maskCanvas = document.createElement("canvas");
     maskCanvas.width = 1024;
     maskCanvas.height = 1024;
     const maskCtx = maskCanvas.getContext("2d")!;
-
-    // Black background
     maskCtx.fillStyle = "black";
     maskCtx.fillRect(0, 0, 1024, 1024);
 
-    // Get drawn pixels from overlay canvas
-    const overlayCtx = canvas.getContext("2d")!;
-    const imageData = overlayCtx.getImageData(0, 0, 512, 512);
-
-    // Scale up to 1024 and paint white where alpha > 0 (painted area)
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = 512;
-    tempCanvas.height = 512;
-    const tempCtx = tempCanvas.getContext("2d")!;
-
-    // Draw only the painted overlay (not the background image)
-    // We need a separate overlay canvas — use composite trick
-    const pureOverlay = document.createElement("canvas");
-    pureOverlay.width = 512;
-    pureOverlay.height = 512;
-    const pureCtx = pureOverlay.getContext("2d")!;
-    pureCtx.drawImage(canvas, 0, 0);
-
-    // Remove the background image pixels by checking purple hue
-    const data = pureCtx.getImageData(0, 0, 512, 512);
     const maskData = maskCtx.getImageData(0, 0, 1024, 1024);
 
     for (let y = 0; y < 512; y++) {
       for (let x = 0; x < 512; x++) {
-        const i = (y * 512 + x) * 4;
-        const r = data.data[i];
-        const g = data.data[i + 1];
-        const b = data.data[i + 2];
-        const a = data.data[i + 3];
-        // Detect violet overlay color (r>100, b>100, g<100, a>50)
-        if (a > 50 && r > 80 && b > 80 && g < 120) {
-          // Scale to 1024: each pixel maps to 2x2
+        const alpha = overlayData.data[(y * 512 + x) * 4 + 3]; // alpha channel
+        if (alpha > 30) {
+          // Scale 512→1024: each pixel maps to 2×2
           for (let dy = 0; dy < 2; dy++) {
             for (let dx = 0; dx < 2; dx++) {
               const mi = ((y * 2 + dy) * 1024 + (x * 2 + dx)) * 4;
@@ -130,22 +109,28 @@ export default function MaskCanvas({ imageDataUrl, onMaskReady }: MaskCanvasProp
     }
     maskCtx.putImageData(maskData, 0, 0);
 
+    const dataUrl = maskCanvas.toDataURL("image/png");
     maskCanvas.toBlob((blob) => {
       if (!blob) return;
       const file = new File([blob], "mask.png", { type: "image/png" });
-      const dataUrl = maskCanvas.toDataURL("image/png");
       onMaskReady(file, dataUrl);
     }, "image/png");
   }, [onMaskReady]);
 
-  const clearMask = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
-    ctx.clearRect(0, 0, 512, 512);
-    const img = new Image();
-    img.onload = () => ctx.drawImage(img, 0, 0, 512, 512);
-    img.src = imageDataUrl;
+  const clearOverlay = () => {
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+    overlay.getContext("2d")!.clearRect(0, 0, 512, 512);
+  };
+
+  const eventHandlers = {
+    onMouseDown: (e: React.MouseEvent) => { setIsDrawing(true); lastPos.current = null; draw(e); },
+    onMouseMove: draw,
+    onMouseUp: () => setIsDrawing(false),
+    onMouseLeave: () => setIsDrawing(false),
+    onTouchStart: (e: React.TouchEvent) => { e.preventDefault(); setIsDrawing(true); lastPos.current = null; draw(e); },
+    onTouchMove: (e: React.TouchEvent) => { e.preventDefault(); draw(e); },
+    onTouchEnd: () => setIsDrawing(false),
   };
 
   return (
@@ -154,19 +139,15 @@ export default function MaskCanvas({ imageDataUrl, onMaskReady }: MaskCanvasProp
         🖌️ 用画笔涂抹<strong>头发区域</strong>，生成遮罩后再选择发型
       </p>
 
+      {/* Stacked canvases: bg image below, overlay on top for drawing */}
       <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+        <canvas ref={bgRef} width={512} height={512} className="w-full block" />
         <canvas
-          ref={canvasRef}
+          ref={overlayRef}
           width={512}
           height={512}
-          className="w-full touch-none cursor-crosshair"
-          onMouseDown={(e) => { setIsDrawing(true); lastPos.current = null; draw(e); }}
-          onMouseMove={draw}
-          onMouseUp={() => setIsDrawing(false)}
-          onMouseLeave={() => setIsDrawing(false)}
-          onTouchStart={(e) => { e.preventDefault(); setIsDrawing(true); lastPos.current = null; draw(e); }}
-          onTouchMove={(e) => { e.preventDefault(); draw(e); }}
-          onTouchEnd={() => setIsDrawing(false)}
+          className="absolute inset-0 w-full touch-none cursor-crosshair"
+          {...eventHandlers}
         />
       </div>
 
@@ -199,7 +180,7 @@ export default function MaskCanvas({ imageDataUrl, onMaskReady }: MaskCanvasProp
             🧹 擦除
           </button>
           <button
-            onClick={clearMask}
+            onClick={clearOverlay}
             className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
           >
             🔄 重置
