@@ -1,13 +1,14 @@
-const fs = require('fs');
-const path = require('path');
+#!/bin/bash
+set -e
 
-const workerDir = '.vercel/output/static/_worker.js';
-const workerFile = '.vercel/output/static/_worker.js.bak';
-const indexFile = path.join(workerDir, 'index.js');
+# 运行 @cloudflare/next-on-pages 构建
+npx @cloudflare/next-on-pages@1
 
-// 备份目录
-if (fs.existsSync(workerDir) && fs.statSync(workerDir).isDirectory()) {
-  fs.renameSync(workerDir, workerFile);
-  fs.copyFileSync(path.join(workerFile, 'index.js'), workerDir);
-  console.log('✅ Fixed _worker.js');
-}
+# 修复 _worker.js 格式
+WORKER_DIR=".vercel/output/static/_worker.js"
+if [ -d "$WORKER_DIR" ]; then
+  echo "Fixing _worker.js format..."
+  mv "$WORKER_DIR" "${WORKER_DIR}.bak"
+  cp "${WORKER_DIR}.bak/index.js" "$WORKER_DIR"
+  echo "✅ Worker fixed"
+fi
