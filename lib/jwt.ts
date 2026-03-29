@@ -12,8 +12,9 @@ async function getKey(secret: string) {
   );
 }
 
-function b64url(buf: ArrayBuffer) {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+function b64url(buf: ArrayBuffer | Uint8Array) {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  return btoa(String.fromCharCode(...bytes))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=/g, "");
