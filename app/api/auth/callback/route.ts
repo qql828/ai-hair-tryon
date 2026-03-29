@@ -1,8 +1,12 @@
+import { getRequestContext } from "@cloudflare/next-on-pages";
 import { signJWT } from "@/lib/jwt";
 
 export const runtime = "edge";
 
 export async function GET(req: Request) {
+  const { env } = getRequestContext();
+  const e = env as Record<string, string>;
+
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
 
@@ -16,8 +20,8 @@ export async function GET(req: Request) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      client_id: e.GOOGLE_CLIENT_ID,
+      client_secret: e.GOOGLE_CLIENT_SECRET,
       redirect_uri: "https://hairtryon.shop/api/auth/callback",
       grant_type: "authorization_code",
     }),
@@ -36,11 +40,15 @@ export async function GET(req: Request) {
 
   // Sign JWT (7 days)
   const jwt = await signJWT(
-    { email: user.email, name: user.name, picture: user.picture, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 },
-    process.env.JWT_SECRET!
+    {
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+    },
+    e.JWT_SECRET
   );
 
-  // Set cookie and redirect home
   return new Response(null, {
     status: 302,
     headers: {
