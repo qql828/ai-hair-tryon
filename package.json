@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "cf:build": "bash fix-worker.js",
+    "cf:build": "bash build.sh",
     "start": "next start",
     "lint": "eslint",
     "pages:build": "npx @cloudflare/next-on-pages@1",
