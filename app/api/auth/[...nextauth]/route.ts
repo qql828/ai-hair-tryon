@@ -3,7 +3,7 @@ import Google from "next-auth/providers/google"
 
 export const runtime = 'edge'
 
-export const { handlers, auth } = NextAuth({
+const { handlers } = NextAuth({
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
