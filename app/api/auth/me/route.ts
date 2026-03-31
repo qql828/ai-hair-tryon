@@ -1,9 +1,11 @@
+import { getRequestContext } from "@cloudflare/next-on-pages";
 import { verifyJWT } from "@/lib/jwt";
 
 export const runtime = "edge";
 
 export async function GET(req: Request) {
-  const jwtSecret = process.env.JWT_SECRET;
+  const { env } = getRequestContext();
+  const jwtSecret = (env as any).JWT_SECRET;
 
   if (!jwtSecret) {
     return Response.json({ user: null });
