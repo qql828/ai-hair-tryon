@@ -1,11 +1,13 @@
-import { getRequestContext } from "@cloudflare/next-on-pages";
 import { verifyJWT } from "@/lib/jwt";
 
 export const runtime = "edge";
 
 export async function GET(req: Request) {
-  const { env } = getRequestContext();
-  const jwtSecret = (env as Record<string, string>).JWT_SECRET;
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!jwtSecret) {
+    return Response.json({ user: null });
+  }
 
   const cookie = req.headers.get("cookie") || "";
   const token = cookie

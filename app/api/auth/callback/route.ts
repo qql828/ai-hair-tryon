@@ -1,17 +1,21 @@
-import { getRequestContext } from "@cloudflare/next-on-pages";
 import { signJWT } from "@/lib/jwt";
 
 export const runtime = "edge";
 
 export async function GET(req: Request) {
-  const { env } = getRequestContext();
-  const e = env as Record<string, string>;
-
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
 
   if (!code) {
     return new Response("Missing code", { status: 400 });
+  }
+
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!clientId || !clientSecret || !jwtSecret) {
+    return new Response("OAuth credentials not configured", { status: 500 });
   }
 
   // Exchange code for tokens
@@ -20,8 +24,8 @@ export async function GET(req: Request) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: e.GOOGLE_CLIENT_ID,
-      client_secret: e.GOOGLE_CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
       redirect_uri: "https://hairtryon.shop/api/auth/callback",
       grant_type: "authorization_code",
     }),
@@ -46,7 +50,7 @@ export async function GET(req: Request) {
       picture: user.picture,
       exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
     },
-    e.JWT_SECRET
+    jwtSecret
   );
 
   return new Response(null, {
