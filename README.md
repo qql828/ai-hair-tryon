@@ -50,3 +50,4 @@ wrangler pages deploy .next
 - 图片仅在浏览器内存和 Worker 内存中处理
 - 后端严禁写入持久化存储
 - 生成完成后图片立即丢弃
+# Trigger redeploy
