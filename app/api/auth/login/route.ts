@@ -2,10 +2,16 @@ import { getRequestContext } from "@cloudflare/next-on-pages";
 
 export const runtime = "edge";
 
-export async function GET() {
+export async function GET(request: Request, context: any) {
   try {
-    const { env } = getRequestContext();
-    const clientId = (env as Record<string, string>).GOOGLE_CLIENT_ID;
+    // Try to get env from context parameter first
+    let clientId = context?.env?.GOOGLE_CLIENT_ID;
+    
+    // Fallback to getRequestContext
+    if (!clientId) {
+      const { env } = getRequestContext();
+      clientId = (env as Record<string, string>).GOOGLE_CLIENT_ID;
+    }
 
     if (!clientId) {
       return new Response("GOOGLE_CLIENT_ID not configured", { status: 500 });

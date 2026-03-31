@@ -2,3 +2,7 @@ name = "ai-hair-tryon"
 compatibility_date = "2026-03-18"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
+
+[vars]
+# Environment variables are set in Cloudflare Dashboard
+# This section is just for documentation
