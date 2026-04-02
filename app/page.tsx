@@ -6,7 +6,9 @@ import MaskCanvas from "@/components/MaskCanvas";
 import HairstyleGrid from "@/components/HairstyleGrid";
 import ResultView from "@/components/ResultView";
 import UpgradeModal from "@/components/UpgradeModal";
+import LangToggle from "@/components/LangToggle";
 import { Hairstyle } from "@/lib/hairstyles";
+import { useLang } from "@/lib/i18n";
 
 type User = { 
   email: string; 
@@ -20,6 +22,7 @@ type User = {
 type Step = "upload" | "mask" | "select" | "result";
 
 export default function Home() {
+  const { t } = useLang();
   const [user, setUser] = useState<User>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [step, setStep] = useState<Step>("upload");
@@ -57,7 +60,7 @@ export default function Home() {
 
     // 未登录拦截
     if (!user) {
-      setError("请先登录后再使用");
+      setError(t.errNotLoggedIn);
       return;
     }
 
@@ -82,10 +85,10 @@ export default function Home() {
         }
         // 未登录
         if (res.status === 401) {
-          setError("请先登录后再使用");
+          setError(t.errNotLoggedIn);
           return;
         }
-        setError(data.error || "生成失败，请重试");
+        setError(data.error || t.errGenFailed);
         return;
       }
 
@@ -98,7 +101,7 @@ export default function Home() {
       setResultUrl(composited);
       setStep("result");
     } catch {
-      setError("网络错误，请检查连接后重试");
+      setError(t.errNetwork);
     } finally {
       setLoading(false);
     }
@@ -179,10 +182,10 @@ export default function Home() {
   };
 
   const steps = [
-    { key: "upload", label: "上传照片", icon: "📷" },
-    { key: "mask", label: "标记头发", icon: "🖌️" },
-    { key: "select", label: "选择发型", icon: "💇" },
-    { key: "result", label: "查看效果", icon: "✨" },
+    { key: "upload", label: t.stepUpload, icon: "📷" },
+    { key: "mask", label: t.stepMask, icon: "🖌️" },
+    { key: "select", label: t.stepSelect, icon: "💇" },
+    { key: "result", label: t.stepResult, icon: "✨" },
   ];
 
   const stepIndex = steps.findIndex((s) => s.key === step);
@@ -192,11 +195,14 @@ export default function Home() {
       <div className="max-w-lg mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
+          <div className="flex justify-end mb-2">
+            <LangToggle />
+          </div>
           <h1 className="text-3xl font-bold text-gray-900">
-            💇 AI 发型试戴
+            💇 {t.appName}
           </h1>
           <p className="text-gray-500 mt-2 text-sm">
-            上传照片，秒速预览新发型 · 隐私安全，不存储图片
+            {t.appDesc}
           </p>
 
           {/* Auth bar */}
@@ -212,14 +218,14 @@ export default function Home() {
                     <span className="text-xs bg-violet-500 text-white px-1.5 py-0.5 rounded-full">Pro</span>
                   ) : (
                     <span className="text-xs text-gray-400">
-                      剩余 <span className={`font-semibold ${user.credits <= 1 ? "text-red-400" : "text-violet-500"}`}>{user.credits}</span> 次
+                      {t.creditsLeft} <span className={`font-semibold ${user.credits <= 1 ? "text-red-400" : "text-violet-500"}`}>{user.credits}</span> {t.creditsTimes}
                     </span>
                   )}
-                  <a href="/api/auth/logout" className="text-xs text-gray-400 hover:text-red-400 transition-colors ml-1">退出</a>
+                  <a href="/api/auth/logout" className="text-xs text-gray-400 hover:text-red-400 transition-colors ml-1">{t.logout}</a>
                 </div>
                 {user.plan !== "pro" && user.credits <= 1 && (
                   <a href="/pricing" className="text-xs bg-violet-500 text-white px-3 py-1 rounded-full hover:bg-violet-600 transition-colors">
-                    ⚡ 升级 Pro，无限次使用
+                    {t.upgradePro}
                   </a>
                 )}
               </div>
@@ -234,7 +240,7 @@ export default function Home() {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
-                使用 Google 登录
+                {t.loginWithGoogle}
               </a>
             )}
           </div>
@@ -267,25 +273,25 @@ export default function Home() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           {step === "upload" && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">上传你的照片</h2>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">{t.uploadTitle}</h2>
               <UploadZone onImageLoaded={handleImageLoaded} />
               <p className="text-xs text-gray-400 mt-3 text-center">
-                🔒 照片仅在内存中处理，不会被存储
+                {t.uploadPrivacy}
               </p>
             </div>
           )}
 
           {step === "mask" && imageDataUrl && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">标记头发区域</h2>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">{t.maskTitle}</h2>
               <MaskCanvas imageDataUrl={imageDataUrl} onMaskReady={handleMaskReady} />
             </div>
           )}
 
           {step === "select" && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-800 mb-1">选择发型</h2>
-              <p className="text-sm text-gray-400 mb-4">点击心仪的发型，然后点击生成</p>
+              <h2 className="text-lg font-semibold text-gray-800 mb-1">{t.selectTitle}</h2>
+              <p className="text-sm text-gray-400 mb-4">{t.selectDesc}</p>
 
               <HairstyleGrid
                 selected={selectedStyle?.id ?? null}
@@ -314,12 +320,12 @@ export default function Home() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                     </svg>
-                    AI 生成中，约 5-10 秒…
+                    {t.generatingBtn}
                   </span>
                 ) : selectedStyle ? (
-                  `✨ 生成「${selectedStyle.name}」效果`
+                  t.generateBtn.replace("{name}", selectedStyle.name)
                 ) : (
-                  "请先选择一款发型"
+                  t.noStyleBtn
                 )}
               </button>
 
@@ -327,7 +333,7 @@ export default function Home() {
                 onClick={() => setStep("mask")}
                 className="mt-2 w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
               >
-                ← 重新标记头发区域
+                {t.backToMask}
               </button>
             </div>
           )}
@@ -335,7 +341,7 @@ export default function Home() {
           {step === "result" && resultUrl && (
             <div>
               <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                ✨ {selectedStyle?.name} 效果
+                {t.resultTitle.replace("{name}", selectedStyle?.name ?? "")}
               </h2>
               <ResultView
                 originalUrl={imageDataUrl}
@@ -349,7 +355,7 @@ export default function Home() {
 
         {/* Footer */}
         <p className="text-center text-xs text-gray-300 mt-6">
-          Powered by Stability AI · 图片不上传服务器
+          {t.poweredBy}
         </p>
       </div>
 
