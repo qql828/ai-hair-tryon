@@ -6,3 +6,11 @@ pages_build_output_dir = ".vercel/output/static"
 [vars]
 # Environment variables are set in Cloudflare Dashboard
 # This section is just for documentation
+
+# D1 数据库绑定
+# 创建命令: wrangler d1 create ai-hair-tryon-db
+# 创建后将 database_id 填入下方
+[[d1_databases]]
+binding = "DB"
+database_name = "ai-hair-tryon-db"
+database_id = "placeholder-replace-after-create"

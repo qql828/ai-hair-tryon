@@ -19,7 +19,7 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d) => setUser(d.user))
+      .then((d: any) => setUser(d.user))
       .finally(() => setUserLoading(false));
   }, []);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -56,7 +56,7 @@ export default function Home() {
       form.append("negativePrompt", selectedStyle.negativePrompt);
 
       const res = await fetch("/api/generate", { method: "POST", body: form });
-      const data = await res.json();
+      const data = await res.json() as any;
 
       if (!res.ok) {
         setError(data.error || "生成失败，请重试");
