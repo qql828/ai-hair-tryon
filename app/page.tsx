@@ -5,9 +5,17 @@ import UploadZone from "@/components/UploadZone";
 import MaskCanvas from "@/components/MaskCanvas";
 import HairstyleGrid from "@/components/HairstyleGrid";
 import ResultView from "@/components/ResultView";
+import UpgradeModal from "@/components/UpgradeModal";
 import { Hairstyle } from "@/lib/hairstyles";
 
-type User = { email: string; name: string; picture: string } | null;
+type User = { 
+  email: string; 
+  name: string; 
+  picture: string; 
+  plan: string; 
+  credits: number;
+  totalGenerations: number;
+} | null;
 
 type Step = "upload" | "mask" | "select" | "result";
 
@@ -30,6 +38,7 @@ export default function Home() {
   const [resultUrl, setResultUrl] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const handleImageLoaded = useCallback((file: File, dataUrl: string) => {
     setImageFile(file);
@@ -45,6 +54,13 @@ export default function Home() {
 
   const handleGenerate = async () => {
     if (!imageFile || !maskFile || !selectedStyle) return;
+
+    // 未登录拦截
+    if (!user) {
+      setError("请先登录后再使用");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -59,12 +75,25 @@ export default function Home() {
       const data = await res.json() as any;
 
       if (!res.ok) {
+        // 点数不足，弹出升级弹窗
+        if (res.status === 402 && data.code === "NO_CREDITS") {
+          setShowUpgradeModal(true);
+          return;
+        }
+        // 未登录
+        if (res.status === 401) {
+          setError("请先登录后再使用");
+          return;
+        }
         setError(data.error || "生成失败，请重试");
         return;
       }
 
-      // Composite: paste original pixels back where mask is black (non-hair areas)
-      // This preserves the face and body pixel-perfectly from the original photo
+      // 更新本地点数显示
+      if (user && data.credits !== undefined) {
+        setUser({ ...user, credits: data.credits === -1 ? user.credits : data.credits });
+      }
+
       const composited = await compositeImages(imageDataUrl, data.image, maskDataUrl);
       setResultUrl(composited);
       setStep("result");
@@ -175,10 +204,24 @@ export default function Home() {
             {userLoading ? (
               <div className="h-8 w-24 bg-gray-100 rounded-full animate-pulse" />
             ) : user ? (
-              <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-full px-3 py-1.5 shadow-sm">
-                <img src={user.picture} alt={user.name} className="w-6 h-6 rounded-full" referrerPolicy="no-referrer" />
-                <span className="text-sm text-gray-700">{user.name}</span>
-                <a href="/api/auth/logout" className="text-xs text-gray-400 hover:text-red-400 transition-colors ml-1">退出</a>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-full px-3 py-1.5 shadow-sm">
+                  <img src={user.picture} alt={user.name} className="w-6 h-6 rounded-full" referrerPolicy="no-referrer" />
+                  <span className="text-sm text-gray-700">{user.name}</span>
+                  {user.plan === "pro" ? (
+                    <span className="text-xs bg-violet-500 text-white px-1.5 py-0.5 rounded-full">Pro</span>
+                  ) : (
+                    <span className="text-xs text-gray-400">
+                      剩余 <span className={`font-semibold ${user.credits <= 1 ? "text-red-400" : "text-violet-500"}`}>{user.credits}</span> 次
+                    </span>
+                  )}
+                  <a href="/api/auth/logout" className="text-xs text-gray-400 hover:text-red-400 transition-colors ml-1">退出</a>
+                </div>
+                {user.plan !== "pro" && user.credits <= 1 && (
+                  <a href="/pricing" className="text-xs bg-violet-500 text-white px-3 py-1 rounded-full hover:bg-violet-600 transition-colors">
+                    ⚡ 升级 Pro，无限次使用
+                  </a>
+                )}
               </div>
             ) : (
               <a
@@ -309,6 +352,14 @@ export default function Home() {
           Powered by Stability AI · 图片不上传服务器
         </p>
       </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        credits={user?.credits ?? 0}
+        plan={user?.plan ?? "free"}
+      />
     </main>
   );
 }
