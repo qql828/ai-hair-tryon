@@ -1,8 +1,6 @@
 export const runtime = "edge";
 
-// 环境切换：sandbox=沙箱测试，live=正式环境
-// 测试完成后改为 https://api-m.paypal.com
-const PAYPAL_BASE = "https://api-m.sandbox.paypal.com"; // Sandbox 环境
+const PAYPAL_BASE = "https://api-m.paypal.com"; // Live 正式环境
 
 // 获取 PayPal Access Token
 export async function getPayPalAccessToken(
