@@ -8,7 +8,7 @@ const translations = {
   zh: {
     // 通用
     appName: "AI 发型试戴",
-    appDesc: "上传照片，秒速预览新发型 · 隐私安全，不存储图片",
+    appDesc: "免费在线 AI 发型试戴 · 虚拟换发型 · 染发模拟 · 隐私安全，不存储图片",
     logout: "退出",
     loginWithGoogle: "使用 Google 登录",
     creditsLeft: "剩余",
@@ -23,16 +23,16 @@ const translations = {
     stepResult: "查看效果",
 
     // 上传
-    uploadTitle: "上传你的照片",
-    uploadPrivacy: "🔒 照片仅在内存中处理，不会被存储",
+    uploadTitle: "AI Hair Try-On: 上传你的照片以体验 AI 发型试戴",
+    uploadPrivacy: "🔒 我们的在线发型模拟器会保护隐私，照片仅在内存中处理，不存储图片",
 
     // 遮罩
-    maskTitle: "标记头发区域",
+    maskTitle: "使用画笔工具精准标记头发区域以进行 AI 发色模拟",
 
     // 选择发型
-    selectTitle: "选择发型",
-    selectDesc: "点击心仪的发型，然后点击生成",
-    generateBtn: "✨ 生成「{name}」效果",
+    selectTitle: "从 AI 发型库中选择心仪发型",
+    selectDesc: "预览不同发型与发色。点击心仪的发型，然后点击生成，即刻获取 AI 虚拟染发试戴效果",
+    generateBtn: "✨ AI 生成「{name}」发型试戴效果",
     generatingBtn: "AI 生成中，约 5-10 秒…",
     noStyleBtn: "请先选择一款发型",
     backToMask: "← 重新标记头发区域",
@@ -108,7 +108,7 @@ const translations = {
   },
   en: {
     appName: "AI Hair Try-On",
-    appDesc: "Upload a photo, preview new hairstyles instantly · Privacy-safe, no image storage",
+    appDesc: "Free AI hair try-on tool. Upload a photo, preview new hairstyles & hair colors instantly. Virtual hair color simulator — 100% private, no image storage.",
     logout: "Logout",
     loginWithGoogle: "Sign in with Google",
     creditsLeft: "",

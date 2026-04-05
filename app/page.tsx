@@ -354,6 +354,28 @@ export default function Home() {
         </div>
 
         {/* Footer */}
+        <div className="mt-12 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">{t.faqTitle}</h2>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold text-gray-800">{t.faq1Q}</h3>
+              <p className="text-sm text-gray-600 mt-1">{t.faq1A}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800">{t.faq3Q}</h3>
+              <p className="text-sm text-gray-600 mt-1">{t.faq3A}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800">{t.faq7Q}</h3>
+              <p className="text-sm text-gray-600 mt-1">{t.faq7A}</p>
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <a href="/pricing" className="text-sm text-violet-600 hover:text-violet-700 font-medium">
+                {t.upgradePro} →
+              </a>
+            </div>
+          </div>
+        </div>
         <p className="text-center text-xs text-gray-300 mt-6">
           {t.poweredBy}
         </p>
