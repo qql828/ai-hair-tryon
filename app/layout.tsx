@@ -48,6 +48,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="zh-CN">
       <head>
         <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-C8R5GDJJ16"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-C8R5GDJJ16');
+          `}
+        </Script>
+        <Script
           id="json-ld"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
